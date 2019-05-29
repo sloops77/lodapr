@@ -36,6 +36,7 @@ const lodapr =
       async initialResultSet => {
         let resultSet = initialResultSet;
         for (const mapper of mappers) {
+          // eslint-disable-next-line no-await-in-loop
           resultSet = await mapper(resultSet);
         }
         return extractFinalResult(extractor, resultSet);
@@ -119,6 +120,7 @@ async function mapSerialAsync(iteratee, assignTo, resultSet) {
     if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
       continue;
     }
+    // eslint-disable-next-line no-await-in-loop
     await doAsyncIteratee(iteratee, assignTo, resultSet, key);
   }
 
