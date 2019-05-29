@@ -1,17 +1,17 @@
 const _ = require("lodash/fp");
 const uuidv1 = require("uuid/v1");
 
-const { createWorkingSet, mapSync, mapSerialAsync, mapParallelAsync, extractResults, lodapr } = require("../src");
+const { createResultSet, mapSync, mapSerialAsync, mapParallelAsync, extractFinalResult, lodapr } = require("../src");
 
-describe("workingsets", () => {
-  it("can create workingsets", () => {
-    expect(createWorkingSet("accountId", "reward", [])).toEqual({});
-    expect(createWorkingSet("accountId", "reward")([{ "not right": 1 }])).toEqual({});
-    expect(createWorkingSet("accountId", "reward", [{ accountId: "a", amount: 100 }])).toEqual({
+describe("resultsets", () => {
+  it("can create resultsets", () => {
+    expect(createResultSet("accountId", "reward", [])).toEqual({});
+    expect(createResultSet("accountId", "reward")([{ "not right": 1 }])).toEqual({});
+    expect(createResultSet("accountId", "reward", [{ accountId: "a", amount: 100 }])).toEqual({
       a: { reward: { accountId: "a", amount: 100 } }
     });
     expect(
-      createWorkingSet("accountId", "reward", [
+      createResultSet("accountId", "reward", [
         { accountId: "a", amount: 100 },
         { accountId: "b", amount: 99 },
         { accountId: "c", amount: 100 }
@@ -23,37 +23,37 @@ describe("workingsets", () => {
     });
   });
 
-  it("can map workingsets", () => {
-    const workingSet = {
+  it("can map resultsets", () => {
+    const resultSet = {
       a: { reward: { accountId: "a", amount: 100 } },
       b: { reward: { accountId: "b", amount: 99 } },
       c: { reward: { accountId: "c", amount: 100 } }
     };
 
     const mapper = mapSync(({ reward: { amount } }) => `${amount.toString()}.00`, "amountStr");
-    expect(mapper(workingSet)).toEqual({
+    expect(mapper(resultSet)).toEqual({
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
       b: { reward: { accountId: "b", amount: 99 }, amountStr: "99.00" },
       c: { reward: { accountId: "c", amount: 100 }, amountStr: "100.00" }
     });
   });
 
-  it("can map workingsets and will skip errors", () => {
-    const workingSet = {
+  it("can map resultsets and will skip errors", () => {
+    const resultSet = {
       a: { reward: { accountId: "a", amount: 100 } },
       b: { reward: { accountId: "b", amount: 99, error: "doesnt matter" } },
       c: { reward: { accountId: "c", amount: 100 }, error: new Error() }
     };
 
-    expect(mapSync(({ reward: { amount } }) => `${amount.toString()}.00`, "amountStr", workingSet)).toEqual({
+    expect(mapSync(({ reward: { amount } }) => `${amount.toString()}.00`, "amountStr", resultSet)).toEqual({
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
       b: { reward: { accountId: "b", amount: 99, error: "doesnt matter" }, amountStr: "99.00" },
-      c: { reward: { accountId: "c", amount: 100 }, error: workingSet.c.error }
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error }
     });
   });
 
-  it("can map workingsets in parallel", async () => {
-    const workingSet = {
+  it("can map resultsets in parallel", async () => {
+    const resultSet = {
       a: { reward: { accountId: "a", amount: 100 } },
       b: { reward: { accountId: "b", amount: 99 } },
       c: { reward: { accountId: "c", amount: 100 }, error: new Error() }
@@ -61,17 +61,17 @@ describe("workingsets", () => {
 
     const start = Date.now();
     await expect(
-      mapParallelAsync(({ reward: { amount } }) => Promise.resolve(`${amount.toString()}.00`), "amountStr", workingSet)
+      mapParallelAsync(({ reward: { amount } }) => Promise.resolve(`${amount.toString()}.00`), "amountStr", resultSet)
     ).resolves.toEqual({
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
       b: { reward: { accountId: "b", amount: 99 }, amountStr: "99.00" },
-      c: { reward: { accountId: "c", amount: 100 }, error: workingSet.c.error }
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error }
     });
     console.log(`Took ${Date.now() - start}ms`);
   });
 
-  it("can map workingsets with 1000s of entries in parallel", async () => {
-    const workingSet = _.fromPairs(
+  it("can map resultsets with 1000s of entries in parallel", async () => {
+    const resultSet = _.fromPairs(
       _.map(() => {
         const key = uuidv1();
         return [key, { reward: { accountId: key, amount: 100 } }];
@@ -84,13 +84,13 @@ describe("workingsets", () => {
     const result = await mapParallelAsync(
       ({ reward: { amount } }, accountId) => {
         if (previous) {
-          previousAccountInProgressVals.push(workingSet[previous].amountStr);
+          previousAccountInProgressVals.push(resultSet[previous].amountStr);
         }
         previous = accountId;
         return Promise.resolve(`${amount.toString()}.00`);
       },
       "amountStr",
-      workingSet
+      resultSet
     );
     console.log(`Took ${Date.now() - start}ms`);
 
@@ -98,26 +98,26 @@ describe("workingsets", () => {
     expect(previousAccountInProgressVals).not.toEqual(new Array(9999).fill("100.00"));
   });
 
-  it("can map workingsets in serially", async () => {
+  it("can map resultsets in serially", async () => {
     const start = Date.now();
-    const workingSet = {
+    const resultSet = {
       a: { reward: { accountId: "a", amount: 100 } },
       b: { reward: { accountId: "b", amount: 99 } },
       c: { reward: { accountId: "c", amount: 100 }, error: new Error() }
     };
 
     await expect(
-      mapSerialAsync(({ reward: { amount } }) => Promise.resolve(`${amount.toString()}.00`), "amountStr", workingSet)
+      mapSerialAsync(({ reward: { amount } }) => Promise.resolve(`${amount.toString()}.00`), "amountStr", resultSet)
     ).resolves.toEqual({
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
       b: { reward: { accountId: "b", amount: 99 }, amountStr: "99.00" },
-      c: { reward: { accountId: "c", amount: 100 }, error: workingSet.c.error }
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error }
     });
     console.log(`Took ${Date.now() - start}ms`);
   });
 
-  it("can map workingsets with 1000s of entries in serially", async () => {
-    const workingSet = _.fromPairs(
+  it("can map resultsets with 1000s of entries in serially", async () => {
+    const resultSet = _.fromPairs(
       _.map(() => {
         const key = uuidv1();
         return [key, { reward: { accountId: key, amount: 100 } }];
@@ -130,13 +130,13 @@ describe("workingsets", () => {
     const result = await mapSerialAsync(
       ({ reward: { amount } }, accountId) => {
         if (previous) {
-          previousAccountInProgressVals.push(workingSet[previous].amountStr);
+          previousAccountInProgressVals.push(resultSet[previous].amountStr);
         }
         previous = accountId;
         return Promise.resolve(`${amount.toString()}.00`);
       },
       "amountStr",
-      workingSet
+      resultSet
     );
     console.log(`Took ${Date.now() - start}ms`);
 
@@ -145,20 +145,20 @@ describe("workingsets", () => {
   });
 
   it("can extract results", () => {
-    const workingSet = {
+    const resultSet = {
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
       b: { reward: { accountId: "b", amount: 99 }, amountStr: "99.00" },
       c: { reward: { accountId: "c", amount: 100 }, error: new Error("boom") }
     };
 
-    expect(extractResults(val => val.amountStr, workingSet)).toEqual({
+    expect(extractFinalResult(val => val.amountStr, resultSet)).toEqual({
       values: ["100.00", "99.00"],
-      errors: [workingSet.c.error]
+      errors: [resultSet.c.error]
     });
   });
 
   it("can do a full lodapr flow", async () => {
-    const initial = createWorkingSet("accountId", "reward", [
+    const initial = createResultSet("accountId", "reward", [
       { accountId: "a", amount: 100 },
       { accountId: "b", amount: 99 },
       { accountId: "c", amount: 100 }
@@ -167,7 +167,7 @@ describe("workingsets", () => {
     const results = await lodapr(
       mapSync(({ reward: { amount } }) => `${amount.toString()}.00`, "amountStr"),
       mapParallelAsync(({ amountStr }) => Promise.resolve(parseFloat(amountStr) + 0.1), "added10")
-    )(extractResults(val => val.added10.toFixed(2)))(initial);
+    )(val => val.added10.toFixed(2))(initial);
 
     expect(results).toEqual({ values: ["100.10", "99.10", "100.10"], errors: [] });
   });
