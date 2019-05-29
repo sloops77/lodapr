@@ -1,0 +1,28 @@
+{
+  "name": "lodapr",
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "private": true,
+  "dependencies": {
+    "lodash": "^4.17.11"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.132",
+    "await-sleep": "^0.0.1",
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-config-prettier": "^4.1.0",
+    "eslint-plugin-import": "^2.17.1",
+    "eslint-plugin-prettier": "^3.0.1",
+    "jest": "^24.7.1",
+    "prettier": "^1.17.0",
+    "typescript": "^3.4.5",
+    "uuid": "^3.3.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "test": "jest",
+    "test:ci": "jest --coverage"
+  }
+}
