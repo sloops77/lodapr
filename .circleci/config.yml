@@ -58,4 +58,4 @@ jobs:
       - store_artifacts:
           path: reports/junit
       - codecov/upload:
-          file: coverage
+          file: coverage/lcov.info
