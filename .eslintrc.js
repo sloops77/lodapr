@@ -14,7 +14,7 @@ module.exports = {
   rules: {
     complexity: ["error", 6],
     "max-depth": ["error", { max: 2 }],
-    "max-lines": ["error", { max: 120, "skipBlankLines": true, "skipComments": true}],
+    "max-lines": ["error", { max: 240, "skipBlankLines": true, "skipComments": true}],
     "max-nested-callbacks": ["error", 2],
     "no-console": ["error", { allow: ["warn", "error"] }],
     "no-use-before-define": 0, // override airbnb

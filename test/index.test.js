@@ -1,7 +1,15 @@
 const _ = require("lodash/fp");
 const uuidv1 = require("uuid/v1");
 
-const { createResultSet, mapSync, mapSerialAsync, mapParallelAsync, extractFinalResult, lodapr } = require("../src");
+const {
+  createResultSet,
+  mapSync,
+  mapSerialAsync,
+  mapParallelAsync,
+  extractFinalResult,
+  lodapr,
+  fromArray
+} = require("../src");
 
 describe("resultsets", () => {
   it("can create resultsets", () => {
@@ -12,6 +20,26 @@ describe("resultsets", () => {
     });
     expect(
       createResultSet("accountId", "reward", [
+        { accountId: "a", amount: 100 },
+        { accountId: "b", amount: 99 },
+        { accountId: "c", amount: 100 }
+      ])
+    ).toEqual({
+      a: { reward: { accountId: "a", amount: 100 } },
+      b: { reward: { accountId: "b", amount: 99 } },
+      c: { reward: { accountId: "c", amount: 100 } }
+    });
+  });
+
+  it("can create resultsets using fromArray", () => {
+    const iteratee = reward => [reward.accountId, { reward }];
+    expect(fromArray(iteratee, [])).toEqual({});
+    expect(fromArray(iteratee, [{ "not right": 1 }])).toEqual({});
+    expect(fromArray(iteratee, [{ accountId: "a", amount: 100 }])).toEqual({
+      a: { reward: { accountId: "a", amount: 100 } }
+    });
+    expect(
+      fromArray(iteratee, [
         { accountId: "a", amount: 100 },
         { accountId: "b", amount: 99 },
         { accountId: "c", amount: 100 }

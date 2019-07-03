@@ -7,6 +7,8 @@
  * @typedef { {[assignTo: string]: any} } ResultSetValue
  * @typedef { {[id: string]: ResultSetValue} } ResultSet
  * @typedef { {values: any[], errors: Error[]} } FinalResult
+ * @typedef { {values: any[], errors: Error[]} } FinalArrayResult
+ * @typedef { {values: {[id: string]: any}, errors: Error[]} } FinalObjectResult
  */
 const curry = require("lodash.curry");
 
@@ -59,6 +61,65 @@ function createResultSet(key, assignTo, array) {
     }
   }
   return acc;
+}
+
+/**
+ * @template {object} T
+ * @param {(item: T) => [any, object]} iteratee
+ * @param {T[]} array
+ * @returns {NewResultSet<T>}
+ */
+function fromArray(iteratee, array) {
+  /** @type {NewResultSet<T>} */
+  const acc = {};
+  for (const entry of array) {
+    const [key, value] = iteratee(entry);
+    if (key != null) {
+      acc[key] = value;
+    }
+  }
+  return acc;
+}
+
+/**
+ * @template {Function} F
+ * @param {{[assignTo: string]: F}} iterateeSpec
+ * @returns {[string, F]}
+ */
+function parseIterateeSpec(iterateeSpec) {
+  const assignTo = Object.keys(iterateeSpec)[0];
+  const iteratee = iterateeSpec[assignTo];
+  return [assignTo, iteratee];
+}
+
+/**
+ * @param {{[assignTo: string]: (value: ResultSetValue, id: string) => Promise<any>}} iterateeSpec
+ * @param {ResultSet} resultSet
+ * @returns {ResultSet}
+ */
+function extendSync(iterateeSpec, resultSet) {
+  const [assignTo, iteratee] = parseIterateeSpec(iterateeSpec);
+  return mapSync(iteratee, assignTo, resultSet);
+}
+
+/**
+ * @param {{[assignTo: string]: (value: ResultSetValue, id: string) => any}} iterateeSpec
+ * @param {ResultSet} resultSet
+ * @returns {Promise<ResultSet>}
+ */
+function extendAsyncParallel(iterateeSpec, resultSet) {
+  const [assignTo, iteratee] = parseIterateeSpec(iterateeSpec);
+  return mapParallelAsync(iteratee, assignTo, resultSet);
+}
+
+/**
+ * @param {{[assignTo: string]: (value: ResultSetValue, id: string) => any}} iterateeSpec
+ * @param {ResultSet} resultSet
+ * @returns {Promise<ResultSet>}
+ */
+function extendAsyncSerial(iterateeSpec, resultSet) {
+  const [assignTo, iteratee] = parseIterateeSpec(iterateeSpec);
+  return mapSerialAsync(iteratee, assignTo, resultSet);
 }
 
 /**
@@ -127,6 +188,31 @@ async function mapSerialAsync(iteratee, assignTo, resultSet) {
   return resultSet;
 }
 
+// /**
+//  * @param { FinalResultExtractor } iteratee
+//  * @param { ResultSet } resultSet
+//  * @returns { FinalResult }
+//  */
+// function extractObject(iteratee, resultSet) {
+//   /** @type {FinalResult} */
+//   const acc = { values: {}, errors: [] };
+//   for (const key in resultSet) {
+//     if (!Object.prototype.hasOwnProperty.call(resultSet, key)) {
+//       continue;
+//     }
+//     const resultValue = resultSet[key];
+//     if (resultValue.error != null) {
+//       acc.errors.push(resultValue.error);
+//     } else {
+//       const [k, v] = iteratee(resultValue, key);
+//       acc.values[k] = v;
+//     }
+//   }
+//   return acc;
+// }
+//
+// const extractArray = extractFinalResult;
+
 /**
  * @param { FinalResultExtractor } iteratee
  * @param { ResultSet } resultSet
@@ -176,5 +262,9 @@ module.exports = {
   mapParallelAsync: curry(mapParallelAsync),
   mapSerialAsync: curry(mapSerialAsync),
   extractFinalResult: curry(extractFinalResult),
+  extendSync: curry(extendSync),
+  extendAsyncParallel: curry(extendAsyncParallel),
+  extendAsyncSerial: curry(extendAsyncSerial),
+  fromArray,
   lodapr
 };

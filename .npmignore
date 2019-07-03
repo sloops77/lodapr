@@ -1,0 +1,9 @@
+.idea/
+*.iml
+node_modules
+coverage
+yarn-error.log
+
+test
+.circleci
+*.js
