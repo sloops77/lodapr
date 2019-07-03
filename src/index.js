@@ -8,7 +8,7 @@
  * @typedef { {[id: string]: ResultSetValue} } ResultSet
  * @typedef { {values: any[], errors: Error[]} } FinalResult
  */
-const curry = require("lodash/curry");
+const curry = require("lodash.curry");
 
 /**
  * @param { ResultSet } resultSet
