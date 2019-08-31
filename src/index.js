@@ -243,7 +243,12 @@ function extractFinalResult(iteratee, resultSet) {
  * @returns {Promise<any>}
  */
 function doAsyncIteratee(iteratee, assignTo, resultSet, key) {
-  return iteratee(resultSet[key], key)
+  const resultP = iteratee(resultSet[key], key);
+  if (!resultP) {
+    return Promise.reject(new Error(`Iteratee returned undefined instead of a promise. Maybe return Promise.resolve() instead.`));
+  }
+
+  return resultP
     .then(result => {
       // eslint-disable-next-line no-param-reassign
       resultSet[key][assignTo] = result;
