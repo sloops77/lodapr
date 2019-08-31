@@ -245,7 +245,9 @@ function extractFinalResult(iteratee, resultSet) {
 function doAsyncIteratee(iteratee, assignTo, resultSet, key) {
   const resultP = iteratee(resultSet[key], key);
   if (!resultP) {
-    return Promise.reject(new Error(`Iteratee returned undefined instead of a promise. Maybe return Promise.resolve() instead.`));
+    return Promise.reject(
+      new Error(`Iteratee returned undefined instead of a promise. Maybe return Promise.resolve() instead.`)
+    );
   }
 
   return resultP
