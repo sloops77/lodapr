@@ -188,6 +188,31 @@ async function mapSerialAsync(iteratee, assignTo, resultSet) {
   return resultSet;
 }
 
+/**
+ * @param {(acc: any[], value: ResultSetValue, id: string) => Promise<any>} iteratee
+ * @param {string} assignTo
+ * @param {ResultSet} resultSet
+ * @returns {Promise<ResultSet>}
+ */
+async function aggregateSerialAsync(iteratee, assignTo, resultSet) {
+  const isError = initIsError(resultSet);
+  const acc = [];
+
+  for (const key in resultSet) {
+    if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
+      continue;
+    }
+    // eslint-disable-next-line no-await-in-loop
+    /** @type {any} */
+    const result = await doAsyncAggregate(iteratee, assignTo, acc, resultSet, key);
+    if (!isError(key)) {
+      acc.push(result);
+    }
+  }
+
+  return resultSet;
+}
+
 // /**
 //  * @param { FinalResultExtractor } iteratee
 //  * @param { ResultSet } resultSet
@@ -263,11 +288,41 @@ function doAsyncIteratee(iteratee, assignTo, resultSet, key) {
     });
 }
 
+/**
+ * @param {(acc: any[], value: ResultSetValue, id: string) => Promise<any>} agregatee
+ * @param {string} assignTo
+ * @param {any[]} acc
+ * @param {ResultSet} resultSet
+ * @param {string} key
+ * @returns {Promise<any>}
+ */
+function doAsyncAggregate(agregatee, assignTo, acc, resultSet, key) {
+  const resultP = agregatee(acc, resultSet[key], key);
+  if (!resultP) {
+    return Promise.reject(
+      new Error(`Iteratee returned undefined instead of a promise. Maybe return Promise.resolve() instead.`)
+    );
+  }
+
+  return resultP
+    .then(result => {
+      // eslint-disable-next-line no-param-reassign
+      resultSet[key][assignTo] = result;
+      return result;
+    })
+    .catch(error => {
+      // eslint-disable-next-line no-param-reassign
+      resultSet[key].error = error;
+      return error;
+    });
+}
+
 module.exports = {
   createResultSet: curry(createResultSet),
   mapSync: curry(mapSync),
   mapParallelAsync: curry(mapParallelAsync),
   mapSerialAsync: curry(mapSerialAsync),
+  aggregateSerialAsync: curry(aggregateSerialAsync),
   extractFinalResult: curry(extractFinalResult),
   extendSync: curry(extendSync),
   extendAsyncParallel: curry(extendAsyncParallel),

@@ -6,6 +6,7 @@ const {
   mapSync,
   mapSerialAsync,
   mapParallelAsync,
+  aggregateSerialAsync,
   extractFinalResult,
   lodapr,
   fromArray
@@ -126,7 +127,7 @@ describe("resultsets", () => {
     expect(previousAccountInProgressVals).not.toEqual(new Array(9999).fill("100.00"));
   });
 
-  it("can map resultsets in serially", async () => {
+  it("can map resultsets serially", async () => {
     const start = Date.now();
     const resultSet = {
       a: { reward: { accountId: "a", amount: 100 } },
@@ -144,7 +145,31 @@ describe("resultsets", () => {
     console.log(`Took ${Date.now() - start}ms`);
   });
 
-  it("can map resultsets with 1000s of entries in serially", async () => {
+  it("can aggregate resultsets serially", async () => {
+    const start = Date.now();
+    const resultSet = {
+      a: { reward: { accountId: "a", amount: 100 } },
+      b: { reward: { accountId: "b", amount: 99 } },
+      c: { reward: { accountId: "c", amount: 100 }, error: new Error() },
+      d: { reward: { accountId: "b", amount: 98 } }
+    };
+
+    await expect(
+      aggregateSerialAsync(
+        (acc, { reward: { amount } }) => Promise.resolve(`${(parseFloat(_.last(acc) || "0") + amount).toString()}.00`),
+        "amountStr",
+        resultSet
+      )
+    ).resolves.toEqual({
+      a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
+      b: { reward: { accountId: "b", amount: 99 }, amountStr: "199.00" },
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error },
+      d: { reward: { accountId: "b", amount: 98 }, amountStr: "297.00" }
+    });
+    console.log(`Took ${Date.now() - start}ms`);
+  });
+
+  it("can map resultsets with 1000s of entries serially", async () => {
     const resultSet = _.fromPairs(
       _.map(() => {
         const key = uuidv1();
