@@ -202,8 +202,8 @@ async function aggregateSerialAsync(iteratee, assignTo, resultSet) {
     if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
       continue;
     }
-    // eslint-disable-next-line no-await-in-loop
     /** @type {any} */
+    // eslint-disable-next-line no-await-in-loop
     const result = await doAsyncAggregate(iteratee, assignTo, acc, resultSet, key);
     if (!isError(key)) {
       acc.push(result);
