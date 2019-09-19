@@ -206,7 +206,8 @@ async function aggregateSerialAsync(iteratee, assignTo, resultSet) {
     // eslint-disable-next-line no-await-in-loop
     const result = await doAsyncAggregate(iteratee, assignTo, acc, resultSet, key);
     if (!isError(key)) {
-      acc.push(result);
+      // eslint-disable-next-line no-unused-expressions
+      Array.isArray(result) ? acc.push(...result) : acc.push(result);
     }
   }
 

@@ -169,6 +169,30 @@ describe("resultsets", () => {
     console.log(`Took ${Date.now() - start}ms`);
   });
 
+  it("can aggregate resultsets containing arrays serially", async () => {
+    const start = Date.now();
+    const resultSet = {
+      a: { reward: { accountId: "a", amount: 100 } },
+      b: { reward: { accountId: "b", amount: 99 } },
+      c: { reward: { accountId: "c", amount: 100 }, error: new Error() },
+      d: { reward: { accountId: "b", amount: 98 } }
+    };
+
+    await expect(
+      aggregateSerialAsync(
+        (acc, { reward: { amount } }) => Promise.resolve(acc.concat([`${amount.toString()}.00`])),
+        "accumulatedAmounts",
+        resultSet
+      )
+    ).resolves.toEqual({
+      a: { reward: { accountId: "a", amount: 100 }, accumulatedAmounts: ["100.00"] },
+      b: { reward: { accountId: "b", amount: 99 }, accumulatedAmounts: ["100.00", "99.00"] },
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error },
+      d: { reward: { accountId: "b", amount: 98 }, accumulatedAmounts: ["100.00", "100.00", "99.00", "98.00"] }
+    });
+    console.log(`Took ${Date.now() - start}ms`);
+  });
+
   it("can map resultsets with 1000s of entries serially", async () => {
     const resultSet = _.fromPairs(
       _.map(() => {
