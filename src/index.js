@@ -257,20 +257,26 @@ function extractFinalResult(iteratee, resultSet) {
     const resultValue = resultSet[key];
     if (resultValue.error != null) {
       acc.errors.push(resultValue.error);
-    } else {
-      try {
-        acc.values.push(iteratee(resultValue, key));
-      } catch (error) {
-        acc.errors.push(error);
-      }
+      continue;
+    }
+    try {
+      acc.values.push(iteratee(resultValue, key));
+    } catch (error) {
+      acc.errors.push(error);
     }
   }
   return acc;
 }
 
-// @ts-ignore
+/**
+ * @param {(...args: any[]) => Promise<any>} fn
+ * @returns {(...args: any[]) => Promise<any>}
+ */
 function wrapSyncThrows(fn) {
-  // @ts-ignore
+  /**
+   * @param {any[]} ...args
+   * @returns Promise<any>
+   */
   return (...args) => {
     try {
       return fn(...args);
