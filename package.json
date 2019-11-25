@@ -1,13 +1,13 @@
 {
   "name": "lodapr",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "main": "src/index.js",
   "license": "MIT",
   "engines": {
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "lodash.curry": "^4.1.1"
+    "lodash.curry": "^4.17.15"
   },
   "devDependencies": {
     "@types/lodash.curry": "^4.1.6",
