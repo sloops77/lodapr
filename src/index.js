@@ -154,13 +154,14 @@ function mapSync(iteratee, assignTo, resultSet) {
  */
 async function mapParallelAsync(iteratee, assignTo, resultSet) {
   const isError = initIsError(resultSet);
+  const wrappedIteratee = wrapSyncThrows(iteratee);
 
   const resultPs = [];
   for (const key in resultSet) {
     if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
       continue;
     }
-    resultPs.push(doAsyncIteratee(iteratee, assignTo, resultSet, key));
+    resultPs.push(doAsyncIteratee(wrappedIteratee, assignTo, resultSet, key));
   }
 
   await Promise.all(resultPs);
@@ -176,27 +177,29 @@ async function mapParallelAsync(iteratee, assignTo, resultSet) {
  */
 async function mapSerialAsync(iteratee, assignTo, resultSet) {
   const isError = initIsError(resultSet);
+  const wrappedIteratee = wrapSyncThrows(iteratee);
 
   for (const key in resultSet) {
     if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
       continue;
     }
     // eslint-disable-next-line no-await-in-loop
-    await doAsyncIteratee(iteratee, assignTo, resultSet, key);
+    await doAsyncIteratee(wrappedIteratee, assignTo, resultSet, key);
   }
 
   return resultSet;
 }
 
 /**
- * @param {(acc: any[], value: ResultSetValue, id: string) => Promise<any>} iteratee
+ * @param {(acc: any[], value: ResultSetValue, id: string) => Promise<any>} agregatee
  * @param {string} assignTo
  * @param {ResultSet} resultSet
  * @returns {Promise<ResultSet>}
  */
-async function aggregateSerialAsync(iteratee, assignTo, resultSet) {
+async function aggregateSerialAsync(agregatee, assignTo, resultSet) {
   const isError = initIsError(resultSet);
   const acc = [];
+  const wrappedAgregatee = wrapSyncThrows(agregatee);
 
   for (const key in resultSet) {
     if (!Object.prototype.hasOwnProperty.call(resultSet, key) || isError(key)) {
@@ -204,7 +207,7 @@ async function aggregateSerialAsync(iteratee, assignTo, resultSet) {
     }
     /** @type {any} */
     // eslint-disable-next-line no-await-in-loop
-    const result = await doAsyncAggregate(iteratee, assignTo, acc, resultSet, key);
+    const result = await doAsyncAggregate(wrappedAgregatee, assignTo, acc, resultSet, key);
     if (!isError(key)) {
       // eslint-disable-next-line no-unused-expressions
       Array.isArray(result) ? acc.push(...result) : acc.push(result);
@@ -255,10 +258,26 @@ function extractFinalResult(iteratee, resultSet) {
     if (resultValue.error != null) {
       acc.errors.push(resultValue.error);
     } else {
-      acc.values.push(iteratee(resultValue, key));
+      try {
+        acc.values.push(iteratee(resultValue, key));
+      } catch (error) {
+        acc.errors.push(error);
+      }
     }
   }
   return acc;
+}
+
+// @ts-ignore
+function wrapSyncThrows(fn) {
+  // @ts-ignore
+  return (...args) => {
+    try {
+      return fn(...args);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  };
 }
 
 /**

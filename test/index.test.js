@@ -221,6 +221,30 @@ describe("resultsets", () => {
     expect(previousAccountInProgressVals).toEqual(new Array(9999).fill("100.00"));
   });
 
+  it("can handle sync errors out of an async function", async () => {
+    const resultSet = {
+      a: { reward: { accountId: "a", amount: 100 } },
+      b: { oops: { accountId: "b", amount: 99 } },
+      c: { reward: { accountId: "c", amount: 100 }, error: new Error() }
+    };
+
+    const start = Date.now();
+    const result = await mapParallelAsync(
+      ({ reward: { amount } }) => Promise.resolve(`${amount.toString()}.00`),
+      "amountStr",
+      resultSet
+    );
+    await expect(result).toEqual({
+      a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
+      b: {
+        oops: { accountId: "b", amount: 99 },
+        error: new TypeError("Cannot destructure property `amount` of 'undefined' or 'null'.")
+      },
+      c: { reward: { accountId: "c", amount: 100 }, error: resultSet.c.error }
+    });
+    console.log(`Took ${Date.now() - start}ms`);
+  });
+
   it("can extract results", () => {
     const resultSet = {
       a: { reward: { accountId: "a", amount: 100 }, amountStr: "100.00" },
