@@ -254,7 +254,7 @@ describe("resultsets", () => {
 
     expect(extractFinalResult(val => val.amountStr, resultSet)).toEqual({
       values: ["100.00", "99.00"],
-      errors: [resultSet.c.error]
+      errors: [{ err: resultSet.c.error, context: { reward: { accountId: "c", amount: 100 } } }]
     });
   });
 

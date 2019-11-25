@@ -6,11 +6,12 @@
 /**
  * @typedef { {[assignTo: string]: any} } ResultSetValue
  * @typedef { {[id: string]: ResultSetValue} } ResultSet
- * @typedef { {values: any[], errors: Error[]} } FinalResult
+ * @typedef { {values: any[], errors: { err: Error, context: any}[] }} FinalResult
  * @typedef { {values: any[], errors: Error[]} } FinalArrayResult
  * @typedef { {values: {[id: string]: any}, errors: Error[]} } FinalObjectResult
  */
-const curry = require("lodash.curry");
+const curry = require("@tinkoff/utils/function/curry");
+const omit = require("@tinkoff/utils/object/omit");
 
 /**
  * @param { ResultSet } resultSet
@@ -256,7 +257,8 @@ function extractFinalResult(iteratee, resultSet) {
     }
     const resultValue = resultSet[key];
     if (resultValue.error != null) {
-      acc.errors.push(resultValue.error);
+      // @ts-ignore
+      acc.errors.push({ err: resultValue.error, context: omit(["error"], resultValue) });
       continue;
     }
     try {
@@ -344,14 +346,23 @@ function doAsyncAggregate(agregatee, assignTo, acc, resultSet, key) {
 }
 
 module.exports = {
+  // @ts-ignore
   createResultSet: curry(createResultSet),
+  // @ts-ignore
   mapSync: curry(mapSync),
+  // @ts-ignore
   mapParallelAsync: curry(mapParallelAsync),
+  // @ts-ignore
   mapSerialAsync: curry(mapSerialAsync),
+  // @ts-ignore
   aggregateSerialAsync: curry(aggregateSerialAsync),
+  // @ts-ignore
   extractFinalResult: curry(extractFinalResult),
+  // @ts-ignore
   extendSync: curry(extendSync),
+  // @ts-ignore
   extendAsyncParallel: curry(extendAsyncParallel),
+  // @ts-ignore
   extendAsyncSerial: curry(extendAsyncSerial),
   fromArray,
   lodapr
